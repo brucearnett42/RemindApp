@@ -11,6 +11,9 @@ import { cn } from "@/lib/utils";
 import { Separator } from "./ui/separator";
 import { Button } from "./ui/button";
 import { createCollection } from "@/actions/collection";
+import { toast } from "./ui/use-toast";
+import { ReloadIcon } from "@radix-ui/react-icons";
+import { useRouter } from "next/navigation";
 
 interface Props {
     open: boolean;
@@ -23,12 +26,27 @@ export default function CreateCollectionSidebar({open, onOpenChange}: Props) {
         defaultValues: {},
     });
 
+    const router = useRouter();
+
     const onSubmit = async(data: createCollectionSchemaType) => {
         try {
             await createCollection(data);
+
+            // Close the Sheet
+            openChangeWrapper(false);
+            router.refresh();
+
+            toast({
+                title: "Success",
+                description: "Collection created successfully!",
+            });
         }catch(e: any){
             // Show toast
-            alert("ERROR");
+            toast({
+                title: "Error",
+                description: "Something went wrong. Please try again later.",
+                variant: "destructive",
+            });
             console.log("Error while creating colleciton", e);
         }
     };
@@ -88,13 +106,17 @@ export default function CreateCollectionSidebar({open, onOpenChange}: Props) {
                 <div className="flex flex-col gap-3 mt-4">
                     <Separator />
                     <Button 
+                        disabled={form.formState.isSubmitting}
                         variant={"outline"}
                         className={cn(
                             form.watch("color") && CollectionColors[form.getValues("color") as CollectionColor]
                         )}
                         onClick={form.handleSubmit(onSubmit)}>
-                            Confirm
-                        </Button>
+                        Confirm
+                        {form.formState.isSubmitting && (
+                            <ReloadIcon className="ml-2 h-4 w-4 animate-spin" />
+                        )}
+                    </Button>
                 </div>
             </SheetContent>
         </Sheet>
