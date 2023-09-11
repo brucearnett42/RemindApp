@@ -1,7 +1,7 @@
 "use client";
 import { Collection } from '@prisma/client';
 import React from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { cn } from '@/lib/utils';
 import { CollectionColor, CollectionColors } from '@/lib/constants';
 import { useForm } from 'react-hook-form';
@@ -12,8 +12,11 @@ import { Textarea } from './ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Calendar } from './ui/calendar';
 import { Button } from './ui/button';
-import { CalendarIcon } from '@radix-ui/react-icons';
+import { CalendarIcon, ReloadIcon } from '@radix-ui/react-icons';
 import { format } from 'date-fns';
+import { createTask } from '@/actions/task';
+import { toast } from './ui/use-toast';
+import { useRouter } from 'next/navigation';
 
 interface Props {
     open: boolean;
@@ -30,9 +33,25 @@ export default function CreateTaskDialog({ open, collection, setOpen }: Props) {
     });
     const openChangeWrapper = (value: boolean) => {
         setOpen(value);
+        form.reset();
     };
+    const router = useRouter();
     const onSubmit = async (data: createTaskSchemaType) => {
-        console.log("SUBMITTED", data);
+        try {
+            await createTask(data);
+            toast({
+                title: "Success",
+                description: "Task created successfully",
+            });
+            openChangeWrapper(false);
+            router.refresh();
+        }catch(e){
+            toast({
+                title: "Error",
+                description: "Cannot create task",
+                variant: "destructive",
+            });
+        }
     };
 
     return (
@@ -54,7 +73,7 @@ export default function CreateTaskDialog({ open, collection, setOpen }: Props) {
                         Add a task to your collection. You can add as many tasks as you want to a collection.
                     </DialogDescription>
                 </DialogHeader>
-                <div>
+                <div className="gap-4 py-4">
                     <Form {...form}>
                         <form 
                             className="space-y-4 flex flex-col" 
@@ -93,6 +112,7 @@ export default function CreateTaskDialog({ open, collection, setOpen }: Props) {
                                                 >
                                                     <CalendarIcon className="mr-2 h-4 w-4" />
                                                     {field.value && format(field.value, "PPP")}
+                                                    {!field.value && <span>No expiration</span>}
                                                 </Button>
                                             </PopoverTrigger>
                                             <PopoverContent>
@@ -106,6 +126,21 @@ export default function CreateTaskDialog({ open, collection, setOpen }: Props) {
                         </form>
                     </Form>
                 </div>
+                <DialogFooter>
+                    <Button 
+                        disabled={form.formState.isSubmitting}
+                        className={cn(
+                            "w-full dark:text-white text-white",
+                            CollectionColors[collection.color as CollectionColor]
+                        )}
+                        onClick={form.handleSubmit(onSubmit)}
+                    >
+                        Confirm
+                        {form.formState.isSubmitting && (
+                            <ReloadIcon className="animate-spin h-4 w-4 ml-2" />
+                        )}
+                    </Button>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     );
